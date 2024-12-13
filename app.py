@@ -1,25 +1,72 @@
 from flask import Flask, jsonify
-import requests
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
+
+from config import Config
 
 app = Flask(__name__)
+app.config.from_object(Config)
 
-@app.route('/api/data', methods=['GET'])
-def get_data():
-    # URL de la API que quieres consumir
-    #api_url = 'https://rickandmortyapi.com/api/character/2'
-    api_url = 'https://rickandmortyapi.com/api/character/?name=rick&status=alive'
-    
-    # Hacer una solicitud GET a la API
-    response = requests.get(api_url)
-    
-    # Verificar si la solicitud fue exitosa
-    if response.status_code == 200:
-        # Convertir a Json y retornar la respuesta
-        data = response.json()
-        return jsonify(data)
-    else:
-        # Manejar el error si la solicitud falló
-        return jsonify({'error': 'Failed to retrieve data'}), response.status_code
+db = SQLAlchemy(app)
+
+engine = create_engine(Config.SQLALCHEMY_DATABASE_URI)
+Session = sessionmaker(bind=engine)
+session = Session()
+
+class UsersInfo(db.Model):
+    __tablename__ = 'Users_info'
+
+    id = db.Column(db.Integer, primary_key=True, nullable=False)
+    name = db.Column(db.String(30), nullable=False)
+    age = db.Column(db.Integer, nullable=False)
+    photo = db.Column(db.String(200), nullable=False)
+
+@app.route('/user/<id_user>', methods=["GET"])
+def get_user(id_user):
+    try:
+        user = session.query(UsersInfo).filter(UsersInfo.id == int(id_user)).first()
+
+        if user:
+            return jsonify({
+                "id": user.id,
+                "name": user.name,
+                "age": user.age,
+                "photo": user.photo})
+
+        else:
+            raise ValueError("500 INTERNAL SERVER ERROR")
+    except Exception as e:
+        return str(e), 500
+    finally:
+        session.close()
+
+@app.route('/user', methods=['GET'])
+def get_users():
+    try:
+        users = session.query(UsersInfo).all()
+
+        if users:
+
+            users_json = [
+                {
+                    "id": user.id,
+                    "name": user.name,
+                    "age": user.age,
+                    "photo": user.photo
+                }
+                for user in users
+            ]
+
+            return users_json
+
+        else:
+            raise ValueError("500 INTERNAL SERVER ERROR")
+    except Exception as e:
+        return str(e), 500
+    finally:
+        session.close()
+
 
 if __name__ == '__main__':
     app.run(debug=True)
