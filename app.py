@@ -1,3 +1,5 @@
+from crypt import methods
+
 from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import sessionmaker
@@ -21,6 +23,12 @@ class UsersInfo(db.Model):
     name = db.Column(db.String(30), nullable=False)
     age = db.Column(db.Integer, nullable=False)
     photo = db.Column(db.String(200), nullable=False)
+
+@app.route('/', methods=["GET"])
+def index():
+    return jsonify({
+        "Get users" : "https://test-api-04em.onrender.com/user"
+    })
 
 @app.route('/user/<id_user>', methods=["GET"])
 def get_user(id_user):
